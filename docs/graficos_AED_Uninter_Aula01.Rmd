@@ -1,0 +1,316 @@
+---
+title: "Gráficos da Disciplina de AED - Uninter"
+author: "Marcio Vakassugui"
+date: '2022-04-17'
+
+output: 
+  html_document:
+    highlight: zenburn
+    theme: lumen
+    toc: yes
+    toc_float: yes
+    smooth_scroll: no
+    collapsed: yes
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+```
+
+# Aula02
+
+## Carregamento dos Pacotes
+
+```{r Carregamento dos Pacotes}
+library(dplyr)   # permite a manipulação dos dados
+library(ggplot2) # equivalente à biblioteca matplotlib e seaborn do Python
+library(readr)   # equivalente à biblioteca pandas, permite a importação de bases
+library(tidyr)   # necessário para o uso de drop_na()
+```
+
+## Leitura da Base de Dados
+```{r Leitura}
+#| echo = TRUE,
+#| include = TRUE
+
+df1 <- read_csv("../data-raw/pes_2012.csv")
+```
+
+Base de dados - PNAD 2012 - arquivo de pessoas 
+Variaveis:        
+
+- V0101     = Ano de referência
+- UF        = Unidade da federação
+- V0302     = Sexo
+- V8005     = Idade do morador na data de referência
+- V0404     = Cor ou raça
+- V4803     = Anos de estudo (todas as pessoas)
+- V4718     = Rendimento mensal do trabalhador principal
+- V4720     = Rendimento menstal de todas as fontes para pessoas de 10 anos ou mais de idade
+- V4729     = Peso das pessoas
+
+## Pré-processamento
+
+```{r Preprocessamento aula02}
+#| echo = TRUE,
+#| include = TRUE
+
+# Alterar o tipo de Variáveis -----------------------------------------------------------------
+df1$V4718 <- as.double(df1$V4718)# automaticamente alguns valores foram introduzidos por coerção (NA)
+df1$V4720 <- as.double(df1$V4720)# automaticamente alguns valores foram introduzidos por coerção (NA)
+
+# Alterar o nome das variáveis  V0302 e V0404 -------------------------------------------------
+df1 <- rename(df1, "Raça" = "V0404")
+df1<- rename(df1, "Sexo" = "V0302")
+
+# Excluir os valores NA's gerados da base -----------------------------------------------------
+df1 <- df1 |> 
+  drop_na(c(V4718, V4720))
+```
+
+## Gráfico de Barras
+
+```{r Gráfico de Barras}
+#| fig.align = "center"
+df1 |> 
+  count(Sexo) |> 
+  ggplot()+
+  aes(y = Sexo, x = n,
+      fill = Sexo)+
+  geom_col(width = 0.6)+
+  geom_label(
+    aes(label = n, vjust = 0.5, hjust =2),
+    show.legend = FALSE
+  )+
+  labs(
+    title = 'Gráfico de Barras',
+    subtitle = "Total de pessoas por sexo",
+    x = "Sexo",
+    y = "Quantidade"
+  )+
+  scale_fill_manual(values = c("#F08756","#5D6E98"))+
+  theme_bw()+
+  theme(
+    legend.position = "none"
+  )
+```
+
+## Gráfico de Colunas
+
+```{r gráfico de colunas}
+#| fig.align = "center"
+df1 |> 
+  count(Sexo) |> 
+  ggplot()+
+  aes(y = n, x = Sexo,
+      fill = Sexo)+
+  geom_col(width = 0.4)+
+  geom_label(
+    aes(label = n, vjust = -0.5, hjust =0.5),
+    show.legend = FALSE
+  )+
+  labs(
+    title = 'Gráfico de Colunas',
+    subtitle = "Total de pessoas por sexo",
+    x = "Sexo",
+    y = "Quantidade"
+  )+
+  scale_fill_manual(values = c("#F08756","#5D6E98"))+
+  scale_y_continuous(
+    breaks = seq(0,115000,25000),
+    limits = c(0, 112000)
+  )+
+  theme_bw()+
+  theme(
+    legend.position = "bottom"
+  )
+```
+
+
+## Gráfico de Colunas Agrupadas 
+### Raça e quantidade agrupadas por Sexo
+
+```{r}
+#| fig.align = "center"
+df1 |> 
+  count(Sexo, Raça) |> 
+  ggplot()+
+  aes(x = Raça, y = n, fill = Sexo)+
+  geom_col(width = 0.9, position = position_dodge2(preserve = "single"))+
+  scale_fill_manual(values = c("#F08756","#5D6E98"))+
+  labs(
+    title = "Raça x Quantidade - Agrupadas por Sexo",
+    subtitle = "Raça, Sexo e Quantidade",
+    x = "",
+    y = ""
+  )+
+  theme_classic()
+```
+
+## Gráfico de Colunas Agrupadas 
+### Sexo e quantidade agrupadas por Raça
+
+```{r Gráfico Sexo e Quantidade agrupado por Raça}
+#| fig.align = "center"
+df1 |> 
+  count(Sexo, Raça) |> 
+  ggplot()+
+  aes(x = Sexo, y = n, fill = Raça)+
+  geom_col(width = 0.9, position = position_dodge2(preserve = "single"))+
+  scale_fill_manual(values = c("#563635","#5D6E98", "#6E4276","#506855", "#F08756"))+
+  labs(
+    title = "Sexo x Quantidade - Agrupadas por Raça",
+    subtitle = "Raça, Sexo e Quantidade",
+    x = "",
+    y = ""
+  )+
+  theme_classic()+
+  theme(
+    legend.title = element_text(face = "plain")
+  )
+```
+
+## Gráfico de Setores
+
+```{r}
+#| fig.align = "center"
+df1|> 
+  group_by(
+    Raça
+  ) |> 
+  summarise(
+    freq = n(),
+    freqac = cumsum(freq)
+  ) |> 
+  ggplot() +
+  aes(x = "", fill = Raça, weight = freq) +
+  geom_bar() +
+  coord_polar(theta = "y")+
+  scale_fill_manual(values = c("#563635","#F08756", "#6E4276","#5D6E98", "#506855"))+
+  labs(title = "Raça",
+       x = "",
+       y = "")+
+  theme_classic()
+```
+
+## Gráficos de Distribuição de Frequências
+
+```{r Distribuição de frequencias}
+#| fig.align = "center"
+df1|> 
+  group_by(Raça) |> 
+  summarise(qtde = n()) |> 
+  ggplot()+
+  aes(x = Raça, y = qtde)+
+  geom_col(fill = "#85A9FF")+
+  labs(
+    title = "Frequências Absolutas - Raça",
+    x = "Raças",
+    y = "Frequência de Pessoas"
+  )+
+  theme_bw()
+
+```
+
+## Gráficos de Distribuição de Frequências Acumuladas
+
+```{r}
+#| fig.align = "center"
+df1|> 
+  group_by(Raça) |> 
+  summarise(qtde = n()) |> 
+  mutate(qtde_acum = cumsum(qtde)) |> 
+  ggplot()+
+  aes(x = Raça, y = qtde_acum)+
+  geom_col(fill = "#85A9FF")+
+  labs(
+    title = "Frequências Absolutas Acumuladas - Raça",
+    x = "Raças",
+    y = "Frequência de Pessoas - Acumuladas"
+  )+
+  theme_bw()
+```
+
+# Aula 03
+
+Para as variáveis quantitativas devemos definir o número de intervalos. Este pode ser calculado pelas seguintes regras: <br> <br>
+
+- **Regra do logaritmo**
+
+$$ k = 1 + 3.3*log(n)$$
+
+- **Regra da potência**
+
+$$ 2^k >= n$$
+
+Sendo n o tamanho do conjunto de dados.
+
+## Pré-processamento
+
+```{r pre-processamento aula03}
+## Alterar o nome da variável V8005 ------------------------------------------------------------
+df1 <- rename(df1, "Idade" = "V8005")
+
+## Calcular o valor de k pela regra do logaritmo ----------------------------------------------
+klog <- floor(1 + 3.3 * log(length(df1$Idade))) # arrendodar para baixo
+klog
+
+# Calcular o valor de k pela regra da potência ------------------------------------------------
+## se 2^K = n  ==> log_2 (n) = k
+c <- log2(length((df1$Idade)))
+kpot <- ceiling(c)                             # arredondar para cima
+kpot
+
+```
+
+## Gráfico de Distribuição
+### histograma usando a regra do logaritmo
+
+```{r grafico de distribuicao - histograma}
+#| fig.align = "center"
+df1 |> 
+  ggplot()+
+  geom_histogram(aes( x = Idade), bins = klog, fill = "#C46BAE", color = "white")+
+  scale_x_continuous(
+    breaks = seq(0, 120, 20)
+  )+
+  scale_y_continuous(
+    breaks = seq(0, 14000, 2000)
+  )+
+  labs(
+    title = "Histograma de Idades",
+    x = "Idade",
+    y = "qtde pessoas"
+  )+
+  theme_classic()
+
+```
+
+## Gráfico de Distribuição 
+### histograma usando a regra da potência
+
+```{r}
+#| fig.align = "center"
+df1 |> 
+  ggplot()+
+  geom_histogram(aes( x = Idade), bins = kpot, fill = "#C46BAE", color = "white")+
+  scale_x_continuous(
+    breaks = seq(0, 120, 20)
+  )+
+  scale_y_continuous(
+    breaks = seq(0, 14000, 2000)
+  )+
+  labs(
+    title = "Histograma de Idades",
+    x = "Idade",
+    y = "qtde pessoas"
+  )+
+  theme_classic()
+
+```
+
