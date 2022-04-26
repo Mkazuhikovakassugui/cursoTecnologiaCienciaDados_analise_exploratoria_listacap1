@@ -1,5 +1,6 @@
 ---
-title: "Gráficos da Disciplina de AED - Uninter"
+title: "Disciplina de Análise Exploratória de Dados"
+subtitle: "Linguagem R e Python"
 author: "Marcio Vakassugui"
 date: '2022-04-17'
 
@@ -22,18 +23,91 @@ knitr::opts_chunk$set(
 )
 ```
 
-# Aula02
+# Aula02 -Gráficos de Barras e Colunas
 
-## Carregamento dos Pacotes
+### Carregamento dos Pacotes - Linguagem R
 
-```{r Carregamento dos Pacotes}
-library(dplyr)   # permite a manipulação dos dados
-library(ggplot2) # equivalente à biblioteca matplotlib e seaborn do Python
-library(readr)   # equivalente à biblioteca pandas, permite a importação de bases
-library(tidyr)   # necessário para o uso de drop_na()
+```{r Carregamento dos Pacotes - Linguagem R}
+library(dplyr)  
+library(ggplot2) 
+library(readr)   
+library(tidyr)   
+library(remotes)
+library(glue)
+library(rminiconda)
+
 ```
 
-## Leitura da Base de Dados
+```{r criar ambiente miniconda}
+#| echo = FALSE,
+#| include = FALSE
+
+env_name <- "testando_r_miniconda"
+check_setup_rminiconda <- function(env_name) {
+  python_for_r <- rminiconda::find_miniconda_python(env_name)
+  reticulate::use_python(python_for_r, required = TRUE)
+  message(glue("Ambiente `{env_name}` configurado no `reticulate`!"))
+}
+
+install_setup_rminiconda <- function(env_name) {
+  if (rminiconda::is_miniconda_installed(name = env_name)) {
+    message(glue("Ambiente `{env_name}` já existe!"))
+    check_setup_rminiconda(env_name)
+  } else {
+    message("Instalando novo ambiente: `{env_name}`!")
+    rminiconda::install_miniconda(name = env_name)
+    check_setup_rminiconda(env_name)
+  }
+}
+
+install_setup_rminiconda(env_name)
+
+rminiconda::test_miniconda(env_name)
+
+```
+
+
+```{r Carregameto das bibliotecas - Linguagem python }
+#| echo = FALSE
+
+pip_install_pkg <- function(pkgs_py, update = FALSE) {
+  
+  if (update == TRUE) {
+    pip_update_arg <- "-U"
+  } else {
+    pip_update_arg <- ""
+  }
+  
+  pkgs_py %>% 
+  purrr::map(
+    ~rminiconda_pip_install(
+      pkg_name = .x,
+      name = env_name, 
+      args = pip_update_arg
+      )
+    ) 
+}
+
+pkgs_py <- c(
+  "pandas",
+  "numpy",
+  "matplotlib"
+  )
+```
+
+### Carregamento das Bibliotecas - Linguagem Python
+
+```{python Bibliotecas Python}
+#| echo = TRUE
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sn
+
+```
+
+
+### Leitura da Base de Dados - R
 ```{r Leitura}
 #| echo = TRUE,
 #| include = TRUE
@@ -41,20 +115,16 @@ library(tidyr)   # necessário para o uso de drop_na()
 df1 <- read_csv("../data-raw/pes_2012.csv")
 ```
 
-Base de dados - PNAD 2012 - arquivo de pessoas 
-Variaveis:        
 
-- V0101     = Ano de referência
-- UF        = Unidade da federação
-- V0302     = Sexo
-- V8005     = Idade do morador na data de referência
-- V0404     = Cor ou raça
-- V4803     = Anos de estudo (todas as pessoas)
-- V4718     = Rendimento mensal do trabalhador principal
-- V4720     = Rendimento menstal de todas as fontes para pessoas de 10 anos ou mais de idade
-- V4729     = Peso das pessoas
+### Leitura da Base de Dados - Python
 
-## Pré-processamento
+```{python}
+df1 = pd.read_csv('/home/marcio/Documentos/uninter/analise_exploratoria_dados/pes_2012.csv')
+# ler dados no formato CSV
+
+```
+
+### Pré-processamento dos dados - R
 
 ```{r Preprocessamento aula02}
 #| echo = TRUE,
@@ -73,11 +143,25 @@ df1 <- df1 |>
   drop_na(c(V4718, V4720))
 ```
 
-## Gráfico de Barras
+### Pré-processamento dos dados - Python
 
-```{r Gráfico de Barras}
-#| fig.align = "center"
-df1 |> 
+```{python}
+
+df1["V4718"] = pd.to_numeric(df1["V4718"],errors="coerce")  # transformar dados da coluna em float e os erros substituir por NaN
+df1["V4720"] = pd.to_numeric(df1["V4720"],errors="coerce")
+
+df1 = df1.dropna()  # criando um NOVO dataframe com as linhas inválidas removidas
+
+```
+
+### Gráfico de Barras com ggplot - R
+
+```{r Gráfico de Barras-R}
+#| fig.align = "center",
+#| fig.height = 3,
+#| fig.width = 6,
+
+p1 <- r <- df1 |> 
   count(Sexo) |> 
   ggplot()+
   aes(y = Sexo, x = n,
@@ -88,19 +172,41 @@ df1 |>
     show.legend = FALSE
   )+
   labs(
-    title = 'Gráfico de Barras',
+    title = 'Gráfico de Barras com ggplot',
     subtitle = "Total de pessoas por sexo",
-    x = "Sexo",
-    y = "Quantidade"
+    x = "
+    Quantidade",
+    y = "Sexo
+    "
   )+
   scale_fill_manual(values = c("#F08756","#5D6E98"))+
-  theme_bw()+
+  ggthemes::theme_economist()+
   theme(
     legend.position = "none"
   )
+p1
 ```
 
-## Gráfico de Colunas
+### Gráficos de Barras com Pyplot e Seaborn
+
+```{python Gráfico de Barras-Py}
+#| fig.align = "center",
+#| fig.height = 5,
+#| fig.width = 10
+
+sn.set(style="whitegrid")  # definir estilo de gráfico
+
+sn.countplot(y=df1.V0302)  # gráfico barra - frequência da coluna indicada no eixo y
+plt.title("Gráfico de Barras com Seaborn")  # título do gráfico
+
+#plt.ylabel('')  # nome do eixo y
+#plt.xlabel('')  # nome do eixo x
+
+plt.show()  # exibir gráfico
+
+```
+
+### Gráfico de Colunas - R
 
 ```{r gráfico de colunas}
 #| fig.align = "center"
@@ -129,11 +235,35 @@ df1 |>
   theme(
     legend.position = "bottom"
   )
+
+pip_install_pkg <- function(pkgs_py, update = FALSE) {
+  
+  if (update == TRUE) {
+    pip_update_arg <- "-U"
+  } else {
+    pip_update_arg <- ""
+  }
+  
+  pkgs_py %>% 
+  purrr::map(
+    ~rminiconda_pip_install(
+      pkg_name = .x,
+      name = env_name, 
+      args = pip_update_arg
+      )
+    ) 
+}
+
+pkgs_py <- c(
+  "pandas",
+  "numpy",
+  "matplotlib"
+  )
 ```
 
 
-## Gráfico de Colunas Agrupadas 
-### Raça e quantidade agrupadas por Sexo
+## Gráfico de Colunas Agrupadas - R
+#### Raça e quantidade agrupadas por Sexo
 
 ```{r}
 #| fig.align = "center"
@@ -152,8 +282,8 @@ df1 |>
   theme_classic()
 ```
 
-## Gráfico de Colunas Agrupadas 
-### Sexo e quantidade agrupadas por Raça
+### Gráfico de Colunas Agrupadas - R
+#### Sexo e quantidade agrupadas por Raça
 
 ```{r Gráfico Sexo e Quantidade agrupado por Raça}
 #| fig.align = "center"
@@ -175,7 +305,7 @@ df1 |>
   )
 ```
 
-## Gráfico de Setores
+### Gráfico de Setores - R
 
 ```{r}
 #| fig.align = "center"
@@ -198,7 +328,7 @@ df1|>
   theme_classic()
 ```
 
-## Gráficos de Distribuição de Frequências
+### Gráficos de Distribuição de Frequências - R
 
 ```{r Distribuição de frequencias}
 #| fig.align = "center"
@@ -217,7 +347,7 @@ df1|>
 
 ```
 
-## Gráficos de Distribuição de Frequências Acumuladas
+### Gráficos de Distribuição de Frequências Acumuladas - R
 
 ```{r}
 #| fig.align = "center"
